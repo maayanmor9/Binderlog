@@ -1,0 +1,23 @@
+name: Build card index and deploy
+on:
+  workflow_dispatch:
+  schedule: [{ cron: "17 3 * * 1" }]
+  push: { branches: [main] }
+permissions: { contents: read, pages: write, id-token: write }
+concurrency: { group: pages, cancel-in-progress: true }
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm test
+      - uses: actions/cache@v4
+        with: { path: .cache, key: "images-${{ github.run_id }}", restore-keys: "images-" }
+      - run: npm run build:index
+      - run: npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: dist }
+      - uses: actions/deploy-pages@v4
